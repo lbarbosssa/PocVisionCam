@@ -5,7 +5,7 @@ import {
     useCameraDevice,
     useCameraPermission,
     useFrameProcessor,
-    useCodeScanner,
+    // useCodeScanner,
     Camera
 } from "react-native-vision-camera";
 
@@ -19,7 +19,7 @@ const CamScreen = () => {
 
     const takePhoto = async () => {
         if (cameraRef.current) {
-            try {                
+            try {
                 const photo = await cameraRef.current.takePhoto({
                     flash: 'off',
                     qualityPrioritization: 'balanced',
@@ -40,31 +40,39 @@ const CamScreen = () => {
 
     const frameProcessor = useFrameProcessor((frame) => {
         'worklet'
-        // console.log(`Frame: ${frame.width}x${frame.height} (${frame.pixelFormat})`)
+        
+        if (frame.pixelFormat === 'rgb') {
+            const buffer = frame.toArrayBuffer()
+            const data = new Uint8Array(buffer)
+            console.log(`Pixel at 0,0: RGB(${data[0]}, ${data[1]}, ${data[2]})`)
+          }
     }, [])
 
-    const codeScanner = useCodeScanner({
-        codeTypes: ['code-128'],
-        onCodeScanned: (codes) => {
-          console.log(`Scanned ${codes[0].value} codes!`)
-        }
-      })
+    // const codeScanner = useCodeScanner({
+    //     codeTypes: ['code-128'],
+    //     onCodeScanned: (codes) => {
+    //       console.log(`Scanned ${codes[0].value} codes!`)
+    //     }
+    //   })
 
     return (
 
         <View style={StyleSheet.absoluteFill}>
             <Camera
                 ref={cameraRef}
-                style={{ width: '100%', height: '50%' }}
+                style={StyleSheet.absoluteFill}
                 device={device}
                 isActive={true}
-                // frameProcessor={frameProcessor}
-                codeScanner={codeScanner} 
+                frameProcessor={frameProcessor}
+                // format={device.formats[88]}
+                pixelFormat="rgb"
+                // zoom={2}
+                // codeScanner={codeScanner} 
                 photo={true} // Importante para habilitar o modo de captura de foto
             />
 
-            <Button title="Tirar Foto" onPress={takePhoto} />
-            {photoUri && <Image style={{ width: '100%', height: '50%' }} source={{ uri: 'file://' + photoUri }} />}
+            {/* <Button title="Tirar Foto" onPress={takePhoto} /> */}
+            {/* {photoUri && <Image style={{ width: '100%', height: '50%' }} source={{ uri: 'file://' + photoUri }} />} */}
 
         </View>
     );
