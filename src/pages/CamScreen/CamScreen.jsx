@@ -5,6 +5,7 @@ import {
     useCameraDevice,
     useCameraPermission,
     useFrameProcessor,
+    useCodeScanner,
     Camera
 } from "react-native-vision-camera";
 
@@ -42,6 +43,13 @@ const CamScreen = () => {
         // console.log(`Frame: ${frame.width}x${frame.height} (${frame.pixelFormat})`)
     }, [])
 
+    const codeScanner = useCodeScanner({
+        codeTypes: ['code-128'],
+        onCodeScanned: (codes) => {
+          console.log(`Scanned ${codes[0].value} codes!`)
+        }
+      })
+
     return (
 
         <View style={StyleSheet.absoluteFill}>
@@ -50,7 +58,8 @@ const CamScreen = () => {
                 style={{ width: '100%', height: '50%' }}
                 device={device}
                 isActive={true}
-                frameProcessor={frameProcessor}
+                // frameProcessor={frameProcessor}
+                codeScanner={codeScanner} 
                 photo={true} // Importante para habilitar o modo de captura de foto
             />
 
