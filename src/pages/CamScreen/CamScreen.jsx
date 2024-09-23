@@ -4,7 +4,7 @@ import { StyleSheet, Text, Button, View, Image } from "react-native";
 import {
     useCameraDevice,
     useCameraPermission,
-    // useFrameProcessor,
+    useFrameProcessor,
     Camera
 } from "react-native-vision-camera";
 
@@ -18,8 +18,7 @@ const CamScreen = () => {
 
     const takePhoto = async () => {
         if (cameraRef.current) {
-            try {
-                //@ts-ignore
+            try {                
                 const photo = await cameraRef.current.takePhoto({
                     flash: 'off',
                     qualityPrioritization: 'balanced',
@@ -38,10 +37,10 @@ const CamScreen = () => {
 
     if (device == null) return <Text>Sem Câmera</Text>;
 
-    // const frameProcessor = useFrameProcessor((frame) => {
-    //     'worklet'
-    //     // console.log(`Frame: ${frame.width}x${frame.height} (${frame.pixelFormat})`)
-    // }, [])
+    const frameProcessor = useFrameProcessor((frame) => {
+        'worklet'
+        // console.log(`Frame: ${frame.width}x${frame.height} (${frame.pixelFormat})`)
+    }, [])
 
     return (
 
@@ -51,7 +50,7 @@ const CamScreen = () => {
                 style={{ width: '100%', height: '50%' }}
                 device={device}
                 isActive={true}
-                // frameProcessor={frameProcessor}
+                frameProcessor={frameProcessor}
                 photo={true} // Importante para habilitar o modo de captura de foto
             />
 
