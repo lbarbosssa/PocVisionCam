@@ -1,24 +1,40 @@
-import React, { useState, useRef } from "react";
+import React, { useState, useRef, useEffect } from "react";
 import { StyleSheet, Text, Button, View, Image } from "react-native";
+import { BorderTypes, DataTypes, ObjectType, OpenCV } from "react-native-fast-opencv";
 
 import {
     useCameraDevice,
     useCameraPermission,
-    useFrameProcessor,
+    // useFrameProcessor,
     // useCodeScanner,
-    Camera
+    Camera,
 } from "react-native-vision-camera";
+import ImageResizer from 'react-native-image-resizer';
+import RNFS from 'react-native-fs';
 
 
 
 const CamScreen = () => {
     const [photoUri, setPhotoUri] = useState(null);
+    const [processedPhoto, setProcessedPhoto] = useState(null);
+    const [photo, setPhoto] = useState(true);
     const cameraRef = useRef(null);
     const device = useCameraDevice('back');
-    const { hasPermission } = useCameraPermission();
+    const { hasPermission, requestPermission } = useCameraPermission();
+    const [isCameraInitialized, setIsCameraInitialized] = useState(false);
+    const [error, setError] = useState(null);
+
+    const onCameraInitialized = () => {
+        setIsCameraInitialized(true);
+    };
+
 
     const takePhoto = async () => {
-        if (cameraRef.current) {
+        if (photoUri) {
+            setPhotoUri(null);
+            setProcessedPhoto(null)
+            setPhoto(true)
+        } else if (cameraRef.current) {
             try {
                 const photo = await cameraRef.current.takePhoto({
                     flash: 'off',
@@ -26,6 +42,7 @@ const CamScreen = () => {
                 });
                 setPhotoUri(photo.path); // Salva a URI da imagem capturada
                 console.log(photo.path);
+                // await processImage()
 
 
             } catch (error) {
@@ -34,19 +51,61 @@ const CamScreen = () => {
         }
     };
 
-    if (!hasPermission) return <Text>Sem Permissão</Text>;
+    useEffect(() => {
+        if (photoUri) {
+            processImage();  // Chama o processImage apenas quando o photoUri for atualizado
+        }
+    }, [photoUri]);
+
+    const processImage = async () => {
+        try {
+            const resizedImage = await ImageResizer.createResizedImage(
+                photoUri,     // URI da imagem original
+                800,          // Largura desejada
+                600,          // Altura desejada (ou use null para manter a proporção)
+                'JPEG',       // Formato da imagem
+                100            // Qualidade da imagem
+            );
+
+            const imagePath = resizedImage.path; // A URI da imagem deve ser acessível pelo RNFS
+            const fileData = await RNFS.readFile(imagePath, 'base64');
+            const src = OpenCV.base64ToMat(fileData);
+            const dst = OpenCV.createObject(ObjectType.Mat, 0, 0, DataTypes.CV_8U);
+            const kernel = OpenCV.createObject(ObjectType.Size, 5, 5);
+            const point = OpenCV.createObject(ObjectType.Point, 0, 0);
+            OpenCV.invoke(
+                'blur',
+                src,
+                dst,
+                kernel,
+                point,
+                BorderTypes.BORDER_DEFAULT
+            );
+            const dstResult = OpenCV.toJSValue(dst);
+            console.log(dstResult.base64)
+            setProcessedPhoto(`data:image/jpeg;base64,${dstResult.base64}`);
+            OpenCV.clearBuffers();
+            console.log('Imagem processada com sucesso');
+
+        } catch (error) {
+            setError(`Erro ao processar a imagem: ${error}`);
+            console.error('Erro ao processar a imagem:', error);
+        }
+    };
+
+
+
+
+    if (!hasPermission) return <Text onPress={() => requestPermission()}>Sem Permissão</Text>;
 
     if (device == null) return <Text>Sem Câmera</Text>;
 
-    const frameProcessor = useFrameProcessor((frame) => {
-        'worklet'
-        
-        if (frame.pixelFormat === 'rgb') {
-            const buffer = frame.toArrayBuffer()
-            const data = new Uint8Array(buffer)
-            console.log(`Pixel at 0,0: RGB(${data[0]}, ${data[1]}, ${data[2]})`)
-          }
-    }, [])
+
+    // const frameProcessor = useFrameProcessor(async (frame) => {
+    //     'worklet';
+    //     console.log('frame')
+    // }, []);
+
 
     // const codeScanner = useCodeScanner({
     //     codeTypes: ['code-128'],
@@ -56,23 +115,28 @@ const CamScreen = () => {
     //   })
 
     return (
-
         <View style={StyleSheet.absoluteFill}>
+
             <Camera
                 ref={cameraRef}
                 style={StyleSheet.absoluteFill}
                 device={device}
-                isActive={true}
-                frameProcessor={frameProcessor}
-                // format={device.formats[88]}
-                pixelFormat="rgb"
-                // zoom={2}
-                // codeScanner={codeScanner} 
-                photo={true} // Importante para habilitar o modo de captura de foto
+                isActive={isCameraInitialized}
+                onInitialized={onCameraInitialized}
+                pixelFormat="yuv"
+                photo={photo} // Importante para habilitar o modo de captura de foto
+            // frameProcessor={frameProcessor}
+            // codeScanner={codeScanner} 
             />
 
-            {/* <Button title="Tirar Foto" onPress={takePhoto} /> */}
-            {/* {photoUri && <Image style={{ width: '100%', height: '50%' }} source={{ uri: 'file://' + photoUri }} />} */}
+
+            <Button title={photoUri ? 'Refazer' : 'Capturar'} onPress={takePhoto} />
+            {/* <Button title={'Processar'} onPress={processImage} /> */}
+            {processedPhoto && (
+                <>
+                    <Image style={{ width: '100%', height: '100%' }} source={{ uri: processedPhoto }} />
+                </>
+            )}
 
         </View>
     );
