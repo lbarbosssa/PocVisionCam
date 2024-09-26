@@ -1,6 +1,6 @@
 import React, { useState, useRef, useEffect } from "react";
 import { StyleSheet, Text, Button, View, Image } from "react-native";
-import { BorderTypes, DataTypes, ObjectType, OpenCV } from "react-native-fast-opencv";
+import { BorderTypes, ColorConversionCodes, DataTypes, ObjectType, OpenCV, ThresholdTypes } from "react-native-fast-opencv";
 
 import {
     useCameraDevice,
@@ -60,32 +60,36 @@ const CamScreen = () => {
     const processImage = async () => {
         try {
             const resizedImage = await ImageResizer.createResizedImage(
-                photoUri,     // URI da imagem original
-                800,          // Largura desejada
-                600,          // Altura desejada (ou use null para manter a proporção)
-                'JPEG',       // Formato da imagem
-                100            // Qualidade da imagem
+                photoUri,
+                1200,
+                1200,
+                'PNG',
+                100
             );
 
-            const imagePath = resizedImage.path; // A URI da imagem deve ser acessível pelo RNFS
+            const imagePath = resizedImage.path;
             const fileData = await RNFS.readFile(imagePath, 'base64');
             const src = OpenCV.base64ToMat(fileData);
             const dst = OpenCV.createObject(ObjectType.Mat, 0, 0, DataTypes.CV_8U);
-            const kernel = OpenCV.createObject(ObjectType.Size, 5, 5);
-            const point = OpenCV.createObject(ObjectType.Point, 0, 0);
+            const gray = OpenCV.createObject(ObjectType.Mat, 0, 0, DataTypes.CV_8U);
+            OpenCV.invoke('cvtColor', src, gray, ColorConversionCodes.COLOR_BGR2GRAY);
+            const thresholdValue = 160; // Valor de threshold, ajustável conforme necessário
             OpenCV.invoke(
-                'blur',
-                src,
+                'threshold',
+                gray,
                 dst,
-                kernel,
-                point,
-                BorderTypes.BORDER_DEFAULT
+                thresholdValue,
+                200,
+                ThresholdTypes.THRESH_BINARY
             );
+            
+
             const dstResult = OpenCV.toJSValue(dst);
-            console.log(dstResult.base64)
             setProcessedPhoto(`data:image/jpeg;base64,${dstResult.base64}`);
             OpenCV.clearBuffers();
             console.log('Imagem processada com sucesso');
+            // console.log(dstResult.base64);
+
 
         } catch (error) {
             setError(`Erro ao processar a imagem: ${error}`);
