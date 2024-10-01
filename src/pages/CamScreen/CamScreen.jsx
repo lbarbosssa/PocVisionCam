@@ -1,6 +1,6 @@
 import React, { useState, useRef, useEffect } from "react";
 import { StyleSheet, Text, Button, View, Image } from "react-native";
-import { BorderTypes, ColorConversionCodes, DataTypes, ObjectType, OpenCV, ThresholdTypes } from "react-native-fast-opencv";
+import { BorderTypes, ColorConversionCodes, ColormapTypes, ContourApproximationModes, DataTypes, LineTypes, ObjectType, OpenCV, RetrievalModes, ThresholdTypes } from "react-native-fast-opencv";
 
 import {
     useCameraDevice,
@@ -69,9 +69,11 @@ const CamScreen = () => {
 
             const imagePath = resizedImage.path;
             const fileData = await RNFS.readFile(imagePath, 'base64');
+
             const src = OpenCV.base64ToMat(fileData);
-            const dst = OpenCV.createObject(ObjectType.Mat, 0, 0, DataTypes.CV_8U);
-            const gray = OpenCV.createObject(ObjectType.Mat, 0, 0, DataTypes.CV_8U);
+            const dst = OpenCV.createObject(ObjectType.Mat, 1200, 1200, DataTypes.CV_8U);
+            const gray = OpenCV.createObject(ObjectType.Mat, 1200, 1200, DataTypes.CV_8U);
+
             OpenCV.invoke('cvtColor', src, gray, ColorConversionCodes.COLOR_BGR2GRAY);
             const thresholdValue = 160; // Valor de threshold, ajustável conforme necessário
             OpenCV.invoke(
@@ -82,12 +84,46 @@ const CamScreen = () => {
                 200,
                 ThresholdTypes.THRESH_BINARY
             );
+
+
+            // Detectar contornos
+            const contours = OpenCV.createObject(ObjectType.MatVector);
+            OpenCV.invoke(
+                'findContours',
+                dst,
+                contours,
+                RetrievalModes.RETR_TREE,
+                ContourApproximationModes.CHAIN_APPROX_SIMPLE
+            );
+            const contoursMats = OpenCV.toJSValue(contours);
+            // const rectangles: Rect[] = [];
+            const rectangles = [];
+            for (let i = 0; i < contoursMats.array.length; i++) {
+                const contour = OpenCV.copyObjectFromVector(contours, i);
+                const { value: area } = OpenCV.invoke('contourArea', contour, false);
+
+                if (area > 3000) {
+                    const rect = OpenCV.invoke('boundingRect', contour);
+                    rectangles.push(OpenCV.toJSValue(rect));
+                }
+            }
             
+            const rectangle = rectangles[0]; // Considera apenas o primeiro retângulo encontrado
+            if (rectangle) {
+                const { x, y, width, height } = rectangle;
+                console.log({
+                    height,
+                    width,
+                    x,
+                    y
+                });
+            }
 
             const dstResult = OpenCV.toJSValue(dst);
             setProcessedPhoto(`data:image/jpeg;base64,${dstResult.base64}`);
             OpenCV.clearBuffers();
             console.log('Imagem processada com sucesso');
+
             // console.log(dstResult.base64);
 
 
