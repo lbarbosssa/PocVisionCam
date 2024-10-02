@@ -1,6 +1,18 @@
 import React, { useState, useRef, useEffect } from "react";
 import { StyleSheet, Text, Button, View, Image } from "react-native";
-import { BorderTypes, ColorConversionCodes, ColormapTypes, ContourApproximationModes, DataTypes, LineTypes, ObjectType, OpenCV, RetrievalModes, ThresholdTypes } from "react-native-fast-opencv";
+import {
+    BorderTypes,
+    ColorConversionCodes,
+    ColormapTypes,
+    ContourApproximationModes,
+    DataTypes,
+    LineTypes,
+    ObjectType,
+    OpenCV,
+    RetrievalModes,
+    ThresholdTypes
+} from "react-native-fast-opencv";
+import ImageEditor from '@react-native-community/image-editor';
 
 import {
     useCameraDevice,
@@ -17,7 +29,10 @@ import RNFS from 'react-native-fs';
 const CamScreen = () => {
     const [photoUri, setPhotoUri] = useState(null);
     const [processedPhoto, setProcessedPhoto] = useState(null);
-    const [photo, setPhoto] = useState(true);
+    const [thresholdValue, setThresholdValue] = useState(160);
+
+    const [croppedImage, setCroppedImage] = useState(null);
+    const [showCam, setShowCam] = useState(true);
     const cameraRef = useRef(null);
     const device = useCameraDevice('back');
     const { hasPermission, requestPermission } = useCameraPermission();
@@ -30,16 +45,18 @@ const CamScreen = () => {
 
 
     const takePhoto = async () => {
+        console.log('ué')
         if (photoUri) {
             setPhotoUri(null);
             setProcessedPhoto(null)
-            setPhoto(true)
+            setShowCam(true)
         } else if (cameraRef.current) {
             try {
                 const photo = await cameraRef.current.takePhoto({
                     flash: 'off',
                     qualityPrioritization: 'balanced',
                 });
+                setShowCam(false)
                 setPhotoUri(photo.path); // Salva a URI da imagem capturada
                 console.log(photo.path);
                 // await processImage()
@@ -55,7 +72,7 @@ const CamScreen = () => {
         if (photoUri) {
             processImage();  // Chama o processImage apenas quando o photoUri for atualizado
         }
-    }, [photoUri]);
+    }, [photoUri, thresholdValue]);
 
     const processImage = async () => {
         try {
@@ -75,7 +92,7 @@ const CamScreen = () => {
             const gray = OpenCV.createObject(ObjectType.Mat, 1200, 1200, DataTypes.CV_8U);
 
             OpenCV.invoke('cvtColor', src, gray, ColorConversionCodes.COLOR_BGR2GRAY);
-            const thresholdValue = 160; // Valor de threshold, ajustável conforme necessário
+            ; // Valor de threshold, ajustável conforme necessário
             OpenCV.invoke(
                 'threshold',
                 gray,
@@ -107,7 +124,7 @@ const CamScreen = () => {
                     rectangles.push(OpenCV.toJSValue(rect));
                 }
             }
-            
+
             const rectangle = rectangles[0]; // Considera apenas o primeiro retângulo encontrado
             if (rectangle) {
                 const { x, y, width, height } = rectangle;
@@ -120,10 +137,9 @@ const CamScreen = () => {
             }
 
             const dstResult = OpenCV.toJSValue(dst);
-            setProcessedPhoto(`data:image/jpeg;base64,${dstResult.base64}`);
             OpenCV.clearBuffers();
             console.log('Imagem processada com sucesso');
-
+            await cropImage(`data:image/jpeg;base64,${dstResult.base64}`, rectangle);
             // console.log(dstResult.base64);
 
 
@@ -133,7 +149,34 @@ const CamScreen = () => {
         }
     };
 
+    const cropImage = async (base64Img, coords) => {
+        // console.log(base64Img)
+        try {
+            // Defina as coordenadas de corte
+            const marginWidth = 0; // Adicionar 20px de margem na largura
+            const marginHeight = 0; // Adicionar 30px de margem na altura
+            const cropData = {
+                offset: {
+                    x: Math.max(0, coords.x - marginWidth),
+                    y: Math.max(0, coords.y - marginHeight),
+                },
+                size: {
+                    width: coords.width + marginWidth * 2, // Adiciona a margem dos dois lados
+                    height: coords.height + marginHeight * 2, // Adiciona a margem superior e inferior
+                },
+                format: 'png'
+            };
 
+            // Realize o crop
+            const uri = await ImageEditor.cropImage(base64Img, cropData);
+
+            // const b64 = await RNFS.readFile(uri, 'base64');
+            console.log(uri.uri)
+            setProcessedPhoto(uri.uri);
+        } catch (error) {
+            console.error('Erro ao cortar a imagem:', error);
+        }
+    };
 
 
     if (!hasPermission) return <Text onPress={() => requestPermission()}>Sem Permissão</Text>;
@@ -157,27 +200,36 @@ const CamScreen = () => {
     return (
         <View style={StyleSheet.absoluteFill}>
 
+
+
+            {/* <Button title={'Processar'} onPress={processImage} /> */}
+
             <Camera
                 ref={cameraRef}
-                style={StyleSheet.absoluteFill}
+                style={showCam && StyleSheet.absoluteFill}
                 device={device}
-                isActive={isCameraInitialized}
+                isActive={true}
                 onInitialized={onCameraInitialized}
                 pixelFormat="yuv"
-                photo={photo} // Importante para habilitar o modo de captura de foto
+                photo={true} // Importante para habilitar o modo de captura de foto
             // frameProcessor={frameProcessor}
             // codeScanner={codeScanner} 
             />
-
-
-            <Button title={photoUri ? 'Refazer' : 'Capturar'} onPress={takePhoto} />
-            {/* <Button title={'Processar'} onPress={processImage} /> */}
             {processedPhoto && (
                 <>
-                    <Image style={{ width: '100%', height: '100%' }} source={{ uri: processedPhoto }} />
+                    <Image style={{ width: '100%', height: '90%' }} source={{ uri: processedPhoto }} resizeMode="contain" />
                 </>
             )}
+            <Button title={photoUri ? 'Refazer' : 'Capturar'} onPress={takePhoto} />
+            {/* <View style={{
+                width: '100%',
+                display: 'flex',
+                flexDirection: 'row'
+            }}>
+                <Button title={'MENOS'} onPress={() => setThresholdValue(thresholdValue - 10)} />
+                <Button title={'MAIS'} onPress={() => setThresholdValue(thresholdValue + 10)} />
 
+            </View> */}
         </View>
     );
 };
