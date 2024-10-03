@@ -10,21 +10,26 @@ import {
     ObjectType,
     OpenCV,
     RetrievalModes,
-    ThresholdTypes
+    ThresholdTypes,
 } from "react-native-fast-opencv";
 import ImageEditor from '@react-native-community/image-editor';
 
 import {
     useCameraDevice,
     useCameraPermission,
-    // useFrameProcessor,
+    useFrameProcessor,
     // useCodeScanner,
     Camera,
+    useSkiaFrameProcessor,
 } from "react-native-vision-camera";
 import ImageResizer from 'react-native-image-resizer';
 import RNFS from 'react-native-fs';
+import { useResizePlugin } from 'vision-camera-resize-plugin';
+import { PaintStyle, Skia } from '@shopify/react-native-skia';
 
-
+const paint = Skia.Paint();
+paint.setStyle(PaintStyle.Fill);
+paint.setColor(Skia.Color('rgba(0, 255, 0, 0.3)'));
 
 const CamScreen = () => {
     const [photoUri, setPhotoUri] = useState(null);
@@ -38,6 +43,7 @@ const CamScreen = () => {
     const { hasPermission, requestPermission } = useCameraPermission();
     const [isCameraInitialized, setIsCameraInitialized] = useState(false);
     const [error, setError] = useState(null);
+    const { resize } = useResizePlugin();
 
     const onCameraInitialized = () => {
         setIsCameraInitialized(true);
@@ -195,24 +201,100 @@ const CamScreen = () => {
     //       console.log(`Scanned ${codes[0].value} codes!`)
     //     }
     //   })
+
+    const frameProcessor = useSkiaFrameProcessor((frame) => {
+        'worklet';
+
+        const height = frame.height / 4;
+        const width = frame.width / 4;
+
+        const resized = resize(frame, {
+            scale: {
+                width: width,
+                height: height,
+            },
+            pixelFormat: 'bgr',
+            dataType: 'uint8',
+        });
+
+        const src = OpenCV.frameBufferToMat(height, width, 3, resized);
+        const dst = OpenCV.createObject(ObjectType.Mat, 0, 0, DataTypes.CV_8U);
+
+        OpenCV.invoke('cvtColor', src, dst, ColorConversionCodes.COLOR_BGR2GRAY);
+
+        OpenCV.invoke(
+            'threshold',
+            dst,
+            dst,
+            thresholdValue,
+            200,
+            ThresholdTypes.THRESH_BINARY
+        );
+
+
+        const channels = OpenCV.createObject(ObjectType.MatVector);
+        OpenCV.invoke('split', dst, channels);
+        const grayChannel = OpenCV.copyObjectFromVector(channels, 0)
+        const contours = OpenCV.createObject(ObjectType.MatVector);
+        OpenCV.invoke(
+            'findContours',
+            grayChannel,
+            contours,
+            RetrievalModes.RETR_TREE,
+            ContourApproximationModes.CHAIN_APPROX_SIMPLE
+        );
+
+        const contoursMats = OpenCV.toJSValue(contours);
+        const rectangles = [];
+
+        for (let i = 0; i < contoursMats.array.length; i++) {
+            const contour = OpenCV.copyObjectFromVector(contours, i);
+            const { value: area } = OpenCV.invoke('contourArea', contour, false);
+
+            if (area > 3000) {
+                const contourPoints =  OpenCV.invoke('boundingRect', contour);
+                rectangles.push(contourPoints);
+            }
+        }
+
+        console.log(rectangles)
+
+        frame.render();
+
+        for (const rect of rectangles) {
+            const rectangle = OpenCV.toJSValue(rect);
+            frame.drawRect(
+                {
+
+                    height: rectangle.height * 4,
+                    width: rectangle.width * 4,
+                    x: rectangle.x * 4,
+                    y: rectangle.y * 4,
+                },
+                paint
+            );
+        }
+        OpenCV.clearBuffers();
+    }, []);
+
     return (
         <View style={StyleSheet.absoluteFill}>
 
 
             {/* <Button title={'Processar'} onPress={processImage} /> */}
-            
+
             <Camera
                 ref={cameraRef}
-                style={showCam && StyleSheet.absoluteFill}
+                style={StyleSheet.absoluteFill}
                 device={device}
                 isActive={true}
                 onInitialized={onCameraInitialized}
                 pixelFormat="yuv"
-                photo={true} // Importante para habilitar o modo de captura de foto
-            // frameProcessor={frameProcessor}
+                photo={false}
+                frameProcessor={frameProcessor}
             // codeScanner={codeScanner} 
             />
-         
+
             {processedPhoto && (
                 <>
                     <Image style={{ width: '100%', height: '90%' }} source={{ uri: processedPhoto }} resizeMode="contain" />
