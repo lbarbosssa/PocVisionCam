@@ -29,7 +29,7 @@ import RNFS from 'react-native-fs';
 const CamScreen = () => {
     const [photoUri, setPhotoUri] = useState(null);
     const [processedPhoto, setProcessedPhoto] = useState(null);
-    const [thresholdValue, setThresholdValue] = useState(160);
+    const [thresholdValue, setThresholdValue] = useState(162);
 
     const [croppedImage, setCroppedImage] = useState(null);
     const [showCam, setShowCam] = useState(true);
@@ -78,8 +78,8 @@ const CamScreen = () => {
         try {
             const resizedImage = await ImageResizer.createResizedImage(
                 photoUri,
-                1200,
-                1200,
+                1000,
+                1000,
                 'PNG',
                 100
             );
@@ -88,15 +88,14 @@ const CamScreen = () => {
             const fileData = await RNFS.readFile(imagePath, 'base64');
 
             const src = OpenCV.base64ToMat(fileData);
-            const dst = OpenCV.createObject(ObjectType.Mat, 1200, 1200, DataTypes.CV_8U);
-            const gray = OpenCV.createObject(ObjectType.Mat, 1200, 1200, DataTypes.CV_8U);
+            // const dst = OpenCV.createObject(ObjectType.Mat, 700, 700, DataTypes.CV_8U);
+            const gray = OpenCV.createObject(ObjectType.Mat, 900, 900, DataTypes.CV_8U);
 
             OpenCV.invoke('cvtColor', src, gray, ColorConversionCodes.COLOR_BGR2GRAY);
-            ; // Valor de threshold, ajustável conforme necessário
             OpenCV.invoke(
                 'threshold',
                 gray,
-                dst,
+                gray,
                 thresholdValue,
                 200,
                 ThresholdTypes.THRESH_BINARY
@@ -107,7 +106,7 @@ const CamScreen = () => {
             const contours = OpenCV.createObject(ObjectType.MatVector);
             OpenCV.invoke(
                 'findContours',
-                dst,
+                gray,
                 contours,
                 RetrievalModes.RETR_TREE,
                 ContourApproximationModes.CHAIN_APPROX_SIMPLE
@@ -136,7 +135,7 @@ const CamScreen = () => {
                 });
             }
 
-            const dstResult = OpenCV.toJSValue(dst);
+            const dstResult = OpenCV.toJSValue(gray);
             OpenCV.clearBuffers();
             console.log('Imagem processada com sucesso');
             await cropImage(`data:image/jpeg;base64,${dstResult.base64}`, rectangle);
@@ -196,14 +195,12 @@ const CamScreen = () => {
     //       console.log(`Scanned ${codes[0].value} codes!`)
     //     }
     //   })
-
     return (
         <View style={StyleSheet.absoluteFill}>
 
 
-
             {/* <Button title={'Processar'} onPress={processImage} /> */}
-
+            
             <Camera
                 ref={cameraRef}
                 style={showCam && StyleSheet.absoluteFill}
@@ -215,6 +212,7 @@ const CamScreen = () => {
             // frameProcessor={frameProcessor}
             // codeScanner={codeScanner} 
             />
+         
             {processedPhoto && (
                 <>
                     <Image style={{ width: '100%', height: '90%' }} source={{ uri: processedPhoto }} resizeMode="contain" />
