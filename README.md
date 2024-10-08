@@ -16,6 +16,10 @@ Esta aplicação demonstra a integração de captura de imagem e processamento v
 
 *Testado apenas em android*
 
+## Demo
+
+![demo](./.github/assets/demo.gif)
+
 ## Pré-requisitos
 
 Antes de começar, você precisará ter instalado:
