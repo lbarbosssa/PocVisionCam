@@ -44,10 +44,10 @@ Para iniciar o projeto localmente, siga os passos abaixo:
 
 
 ```bash
-git clone https:/
+git clone https://github.com/lbarbosssa/PocVisionCam.git
 ```
 ```bash
-cd 
+cd PocVisionCam
 ```
 2. Instale as dependências:
 
