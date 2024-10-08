@@ -1,79 +1,96 @@
-This is a new [**React Native**](https://reactnative.dev) project, bootstrapped using [`@react-native-community/cli`](https://github.com/react-native-community/cli).
+# React Native Application
 
-# Getting Started
+Este repositório contém uma aplicação (POC) desenvolvida em React Native, projetada para ler códigos de barras. A aplicação captura uma imagem, identifica e destaca o documento reconhecido, e realiza o corte desse documento após o processamento.
 
->**Note**: Make sure you have completed the [React Native - Environment Setup](https://reactnative.dev/docs/environment-setup) instructions till "Creating a new application" step, before proceeding.
+**Funcionalidades:**
+- Leitura de Códigos de Barras: Utiliza a câmera do dispositivo para escanear códigos de barras em tempo real *(foi utilizado o padrão ean 128)*.
+**Processamento de Imagem:**
+ - Converte a imagem capturada para escala de cinza (grayscale).
+- Aplica técnicas de binarização com threshold para destacar o documento.
+- Corta e extrai somente a área correspondente ao documento identificado.
 
-## Step 1: Start the Metro Server
+**Saída em Preto e Branco:**
+- Retorna a imagem processada do documento cortado em preto e branco, pronta para uso ou armazenamento.
 
-First, you will need to start **Metro**, the JavaScript _bundler_ that ships _with_ React Native.
+Esta aplicação demonstra a integração de captura de imagem e processamento visual em dispositivos móveis, destacando a viabilidade de soluções de leitura automatizada e manipulação de documentos.
 
-To start Metro, run the following command from the _root_ of your React Native project:
+*Testado apenas em android*
+
+## Pré-requisitos
+
+Antes de começar, você precisará ter instalado:
+
+- Node.js
+- npm (geralmente instalado junto com o Node.js)
+- React Native CLI
+- Android Studio e o SDK do Android
+
+
+
+## Instalação
+
+
+
+Para iniciar o projeto localmente, siga os passos abaixo:
+
+
+
+1. Clone o repositório:
+
+
 
 ```bash
-# using npm
-npm start
-
-# OR using Yarn
-yarn start
+git clone https:/
 ```
-
-## Step 2: Start your Application
-
-Let Metro Bundler run in its _own_ terminal. Open a _new_ terminal from the _root_ of your React Native project. Run the following command to start your _Android_ or _iOS_ app:
-
-### For Android
+```bash
+cd 
+```
+2. Instale as dependências:
 
 ```bash
-# using npm
-npm run android
-
-# OR using Yarn
-yarn android
+npm install
 ```
 
-### For iOS
-
+3. Executando o Aplicativo
 ```bash
-# using npm
-npm run ios
+npx react-native run-android
 
-# OR using Yarn
-yarn ios
 ```
 
-If everything is set up _correctly_, you should see your new app running in your _Android Emulator_ or _iOS Simulator_ shortly provided you have set up your emulator/simulator correctly.
+## Resolução de problemas
 
-This is one way to run your app — you can also run it directly from within Android Studio and Xcode respectively.
+O react-native-vision-camera apresentou problema de build ao instalar dependências, ou depois de muito tempo gerando builds no ambiente de desenvolvimento, caso tenha problemas com a build os passos a seguir pode ajudar (:
 
-## Step 3: Modifying your App
 
-Now that you have successfully run the app, let's modify it.
+1. Se você já tiver instalado as dependências há muito tempo 
+```bash
+rm -rf node_modules
+```
+2. Reinstale as dependências
+```bash
+npm install
+```
+3. Limpe o build do Android:
+```bash
+cd android
+```
+```bash
+./gradlew clean
+```
+4. Remova a pasta .gradle
+```bash
+rm -rf .gradle && cd ..
+```
+5. Limpe o cache do npm
+```bash
+npx react-native start --reset-cache
+```
+6. Reconstrua a build para android
+```bash
+npx react-native run-android
+```
 
-1. Open `App.tsx` in your text editor of choice and edit some lines.
-2. For **Android**: Press the <kbd>R</kbd> key twice or select **"Reload"** from the **Developer Menu** (<kbd>Ctrl</kbd> + <kbd>M</kbd> (on Window and Linux) or <kbd>Cmd ⌘</kbd> + <kbd>M</kbd> (on macOS)) to see your changes!
 
-   For **iOS**: Hit <kbd>Cmd ⌘</kbd> + <kbd>R</kbd> in your iOS Simulator to reload the app and see your changes!
+**Author: Lucas Barbosa**
 
-## Congratulations! :tada:
-
-You've successfully run and modified your React Native App. :partying_face:
-
-### Now what?
-
-- If you want to add this new React Native code to an existing application, check out the [Integration guide](https://reactnative.dev/docs/integration-with-existing-apps).
-- If you're curious to learn more about React Native, check out the [Introduction to React Native](https://reactnative.dev/docs/getting-started).
-
-# Troubleshooting
-
-If you can't get this to work, see the [Troubleshooting](https://reactnative.dev/docs/troubleshooting) page.
-
-# Learn More
-
-To learn more about React Native, take a look at the following resources:
-
-- [React Native Website](https://reactnative.dev) - learn more about React Native.
-- [Getting Started](https://reactnative.dev/docs/environment-setup) - an **overview** of React Native and how setup your environment.
-- [Learn the Basics](https://reactnative.dev/docs/getting-started) - a **guided tour** of the React Native **basics**.
-- [Blog](https://reactnative.dev/blog) - read the latest official React Native **Blog** posts.
-- [`@facebook/react-native`](https://github.com/facebook/react-native) - the Open Source; GitHub **repository** for React Native.
+**barbosa.lucas1996@gmail.com**

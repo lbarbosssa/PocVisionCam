@@ -1,12 +1,9 @@
 import React, { useState, useRef, useEffect } from "react";
 import { StyleSheet, Text, Button, View, Image } from "react-native";
 import {
-    BorderTypes,
     ColorConversionCodes,
-    ColormapTypes,
     ContourApproximationModes,
     DataTypes,
-    LineTypes,
     ObjectType,
     OpenCV,
     RetrievalModes,
@@ -36,14 +33,11 @@ const CamScreen = () => {
     const [thresholdValue, setThresholdValue] = useState(162);
     const [canTakePhoto, setCanTakePhoto] = useState(false);
     const [canScan, setCanScan] = useState(false);
-    const [frameCoords, setFrameCoords] = useState(false);
     const [loading, setLoading] = useState(false);
     const cameraRef = useRef(null);
     const device = useCameraDevice('back');
     const { hasPermission, requestPermission } = useCameraPermission();
     const [scannedCode, setScannedCode] = useState(null);
-    const [isCameraInitialized, setIsCameraInitialized] = useState(false);
-    const [error, setError] = useState(null);
     const { resize } = useResizePlugin();
 
 
@@ -157,7 +151,6 @@ const CamScreen = () => {
             await cropImage(`data:image/jpeg;base64,${dstResult.base64}`, rectangle);
 
         } catch (error) {
-            setError(`Erro ao processar a imagem: ${error}`);
             console.error('Erro ao processar a imagem:', error);
         }
     };
